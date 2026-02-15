@@ -1,7 +1,7 @@
 .secondary-panel {
   width: var(--secondary-panel-width);
   min-width: 320px;
-  background-color: var(--color-card-bg);
+  background-color: var(--color-surface);
   border-left: 1px solid var(--color-border);
   overflow-y: auto;
 }
@@ -15,15 +15,14 @@
 
 .secondary-panel__title {
   font-size: var(--text-h3);
-  font-family: var(--font-serif);
+  font-family: var(--font-heading);
   color: var(--color-text-primary);
 }
 
 .secondary-panel__explanation {
   font-size: var(--text-body);
   line-height: var(--line-height-body);
-  color: var(--color-text-primary);
-  opacity: 0.8;
+  color: var(--color-text-secondary);
 }
 
 .secondary-panel__prompt {

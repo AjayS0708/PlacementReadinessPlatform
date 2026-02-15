@@ -1,9 +1,10 @@
 .btn {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   font-size: var(--text-body);
+  font-family: var(--font-body);
   font-weight: 500;
   border-radius: var(--radius);
-  transition: all var(--transition-normal);
+  transition: all var(--transition-fast);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -24,8 +25,8 @@
 }
 
 .btn--primary:hover:not(:disabled) {
-  background-color: #6F0000;
-  border-color: #6F0000;
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
 .btn--secondary {

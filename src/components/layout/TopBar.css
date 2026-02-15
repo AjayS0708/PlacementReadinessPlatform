@@ -1,6 +1,6 @@
 .top-bar {
   height: var(--top-bar-height);
-  background-color: var(--color-card-bg);
+  background-color: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   display: flex;
   align-items: center;

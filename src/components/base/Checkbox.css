@@ -11,8 +11,8 @@
   border-radius: var(--radius);
   cursor: pointer;
   appearance: none;
-  background-color: var(--color-card-bg);
-  transition: all var(--transition-normal);
+  background-color: var(--color-surface);
+  transition: all var(--transition-fast);
   position: relative;
   flex-shrink: 0;
 }

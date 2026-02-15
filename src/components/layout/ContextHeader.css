@@ -5,15 +5,14 @@
 
 .context-header__headline {
   font-size: var(--text-h1);
-  font-family: var(--font-serif);
+  font-family: var(--font-heading);
   color: var(--color-text-primary);
   margin-bottom: var(--space-sm);
-  letter-spacing: -0.02em;
+  letter-spacing: var(--letter-spacing-heading);
 }
 
 .context-header__subtext {
   font-size: var(--text-body-lg);
-  color: var(--color-text-primary);
-  opacity: 0.7;
+  color: var(--color-text-secondary);
   line-height: var(--line-height-body);
 }

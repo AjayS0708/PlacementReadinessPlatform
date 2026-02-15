@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   TopBar,
   ContextHeader,
@@ -7,7 +6,7 @@ import {
   SecondaryPanel,
   ProofFooter,
 } from './components/layout';
-import { Card, Button, Input } from './components/base';
+import { Card, Button, Input, ErrorState, EmptyState } from './components/base';
 import './styles/globals.css';
 import './App.css';
 
@@ -88,7 +87,7 @@ function App() {
                   label="Email"
                   type="email"
                   placeholder="your@email.com"
-                  error="This field is required"
+                  error="This field is required. Please enter a valid email address."
                 />
               </div>
             </section>
@@ -103,12 +102,26 @@ function App() {
             </section>
 
             <section className="demo-section">
+              <h3>Empty State</h3>
               <Card padding="lg">
-                <h3>Empty State Example</h3>
-                <p className="empty-state-text">
-                  No projects yet. Get started by creating your first build.
-                </p>
-                <Button variant="primary">Create First Project</Button>
+                <EmptyState
+                  title="No projects yet"
+                  description="Get started by creating your first build. It only takes a moment."
+                  actionLabel="Create First Project"
+                  onAction={() => console.log('Create project')}
+                />
+              </Card>
+            </section>
+
+            <section className="demo-section">
+              <h3>Error State</h3>
+              <Card padding="lg">
+                <ErrorState
+                  title="Build failed"
+                  description="The deployment process encountered an unexpected error during the build step."
+                  suggestion="Check your build configuration and try again. If the issue persists, review the error logs."
+                  onRetry={() => console.log('Retry')}
+                />
               </Card>
             </section>
           </div>

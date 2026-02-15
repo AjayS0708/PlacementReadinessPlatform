@@ -11,7 +11,8 @@ export { SecondaryPanel } from './SecondaryPanel';
 export type { SecondaryPanelProps } from './SecondaryPanel';
 
 export { ProofFooter } from './ProofFooter';
-export type { ProofFooterProps, ProofItem } from './ProofFooter';
+export type { ProofFooterProps } from './ProofFooter';
+export type { ProofItem } from './ProofFooter';
 
 export { WorkspaceLayout } from './WorkspaceLayout';
 export type { WorkspaceLayoutProps } from './WorkspaceLayout';
