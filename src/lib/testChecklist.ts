@@ -58,6 +58,7 @@ export const TEST_CHECKLIST_ITEMS: TestChecklistItem[] = [
 ];
 
 const TEST_CHECKLIST_STORAGE_KEY = 'placement_prp_test_checklist_v1';
+export const PRP_STATUS_EVENT = 'prp-status-changed';
 
 export type ChecklistState = Record<string, boolean>;
 
@@ -89,6 +90,7 @@ export function getChecklistState(): ChecklistState {
 
 export function saveChecklistState(state: ChecklistState): void {
   localStorage.setItem(TEST_CHECKLIST_STORAGE_KEY, JSON.stringify(state));
+  window.dispatchEvent(new Event(PRP_STATUS_EVENT));
 }
 
 export function resetChecklistState(): ChecklistState {

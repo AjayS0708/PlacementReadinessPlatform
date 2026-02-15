@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   BookOpen,
   ClipboardCheck,
@@ -6,6 +7,8 @@ import {
   UserCircle,
 } from 'lucide-react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
+import { getProjectStatusState } from '../lib/prpStatus';
+import { PRP_STATUS_EVENT } from '../lib/testChecklist';
 
 const navItems = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,6 +19,21 @@ const navItems = [
 ];
 
 export function DashboardShell() {
+  const [statusTick, setStatusTick] = useState(0);
+  const isShipped = getProjectStatusState().isShipped;
+
+  useEffect(() => {
+    const handler = () => setStatusTick((prev) => prev + 1);
+    window.addEventListener(PRP_STATUS_EVENT, handler);
+    window.addEventListener('storage', handler);
+    return () => {
+      window.removeEventListener(PRP_STATUS_EVENT, handler);
+      window.removeEventListener('storage', handler);
+    };
+  }, []);
+
+  void statusTick;
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <div className="grid min-h-screen md:grid-cols-[260px_1fr]">
@@ -49,8 +67,17 @@ export function DashboardShell() {
         <div className="flex min-h-screen flex-col">
           <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
             <h1 className="text-xl font-semibold">Placement Prep</h1>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
-              U
+            <div className="flex items-center gap-3">
+              <span
+                className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                  isShipped ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                {isShipped ? 'Shipped' : 'In Progress'}
+              </span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+                U
+              </div>
             </div>
           </header>
 

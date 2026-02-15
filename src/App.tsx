@@ -4,6 +4,7 @@ import { AssessmentsPage } from './pages/AssessmentsPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { LandingPage } from './pages/LandingPage';
 import { PracticePage } from './pages/PracticePage';
+import { ProofPage } from './pages/ProofPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { ResultsPage } from './pages/ResultsPage';
@@ -34,6 +35,10 @@ function App() {
 
       <Route path="/prp/08-ship" element={<DashboardShell />}>
         <Route index element={<ShipGatePage />} />
+      </Route>
+
+      <Route path="/prp/proof" element={<DashboardShell />}>
+        <Route index element={<ProofPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
