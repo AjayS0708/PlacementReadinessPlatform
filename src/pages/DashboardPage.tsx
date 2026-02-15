@@ -55,6 +55,7 @@ export function DashboardPage() {
   const dpCompleted = 3;
   const dpTotal = 10;
   const dpProgress = (dpCompleted / dpTotal) * 100;
+  const isPracticeComplete = dpCompleted >= dpTotal;
 
   const problemsSolved = 12;
   const weeklyTarget = 20;
@@ -129,27 +130,36 @@ export function DashboardPage() {
       <Card>
         <CardHeader>
           <CardTitle>Continue Practice</CardTitle>
-          <CardDescription>Pick up where you left off.</CardDescription>
+          <CardDescription>
+            {isPracticeComplete ? 'Great work. Keep your skills sharp with a quick review.' : 'Pick up where you left off.'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-slate-600">Last topic</p>
           <p className="mt-1 text-xl font-semibold">Dynamic Programming</p>
 
-          <div className="mt-5">
-            <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
-              <span>{dpCompleted}/{dpTotal} completed</span>
-              <span>{Math.round(dpProgress)}%</span>
+          {isPracticeComplete ? (
+            <div className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+              <p className="text-sm font-medium text-emerald-800">All topics complete!</p>
+              <p className="mt-1 text-sm text-emerald-700">You can review solved topics to reinforce key patterns.</p>
             </div>
-            <div className="h-2 w-full rounded-full bg-slate-200">
-              <div className="h-2 rounded-full bg-primary" style={{ width: `${dpProgress}%` }} />
+          ) : (
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between text-sm text-slate-600">
+                <span>{dpCompleted}/{dpTotal} completed</span>
+                <span>{Math.round(dpProgress)}%</span>
+              </div>
+              <div className="h-2 w-full rounded-full bg-slate-200">
+                <div className="h-2 rounded-full bg-primary" style={{ width: `${dpProgress}%` }} />
+              </div>
             </div>
-          </div>
+          )}
 
           <button
             type="button"
             className="mt-6 inline-flex items-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-600"
           >
-            Continue
+            {isPracticeComplete ? 'Review Topics' : 'Continue'}
           </button>
         </CardContent>
       </Card>
