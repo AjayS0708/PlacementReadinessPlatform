@@ -30,6 +30,17 @@ export function saveAnalysisEntry(entry: AnalysisEntry): void {
   setSelectedAnalysisId(entry.id);
 }
 
+export function updateAnalysisEntry(entry: AnalysisEntry): void {
+  const current = getHistory();
+  const exists = current.some((item) => item.id === entry.id);
+  const next = exists
+    ? current.map((item) => (item.id === entry.id ? entry : item))
+    : [entry, ...current];
+
+  saveHistory(next);
+  localStorage.setItem(LATEST_KEY, JSON.stringify(entry));
+}
+
 export function getLatestAnalysis(): AnalysisEntry | null {
   return safeParse<AnalysisEntry | null>(localStorage.getItem(LATEST_KEY), null);
 }

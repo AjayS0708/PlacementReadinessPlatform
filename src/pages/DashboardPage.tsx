@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card';
+import { getSelectedOrLatestAnalysis } from '../lib/storage';
 
 const skillData = [
   { skill: 'DSA', score: 75 },
@@ -39,7 +40,8 @@ const assessments = [
 ];
 
 export function DashboardPage() {
-  const readinessScore = 72;
+  const activeAnalysis = getSelectedOrLatestAnalysis();
+  const readinessScore = activeAnalysis?.readinessScore ?? 72;
   const readinessMax = 100;
   const radius = 84;
   const circumference = 2 * Math.PI * radius;

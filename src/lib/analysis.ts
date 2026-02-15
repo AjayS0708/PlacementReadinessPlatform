@@ -6,6 +6,7 @@ import {
   DayPlan,
   ExtractedSkills,
   SkillCategory,
+  SkillConfidenceMap,
 } from '../types/analysis';
 
 interface SkillPattern {
@@ -112,6 +113,14 @@ function hasSkill(extracted: ExtractedSkills, skill: string): boolean {
 
 function flattenDetectedSkills(extracted: ExtractedSkills): string[] {
   return dedupe(CATEGORY_ORDER.flatMap((category) => extracted[category]));
+}
+
+function buildDefaultSkillConfidenceMap(extracted: ExtractedSkills): SkillConfidenceMap {
+  const map: SkillConfidenceMap = {};
+  flattenDetectedSkills(extracted).forEach((skill) => {
+    map[skill] = 'practice';
+  });
+  return map;
 }
 
 export function buildChecklist(extracted: ExtractedSkills): ChecklistRound[] {
@@ -458,6 +467,7 @@ export function analyzeJobDescription(input: AnalyzeInput): AnalysisEntry {
   const plan = buildSevenDayPlan(extractedSkills);
   const questions = buildLikelyQuestions(extractedSkills);
   const readinessScore = calculateReadinessScore(input, extractedSkills);
+  const skillConfidenceMap = buildDefaultSkillConfidenceMap(extractedSkills);
 
   return {
     id: createId(),
@@ -469,6 +479,8 @@ export function analyzeJobDescription(input: AnalyzeInput): AnalysisEntry {
     plan,
     checklist,
     questions,
+    baseReadinessScore: readinessScore,
     readinessScore,
+    skillConfidenceMap,
   };
 }

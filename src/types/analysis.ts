@@ -10,6 +10,8 @@ export const CATEGORY_ORDER = [
 export type SkillCategory = (typeof CATEGORY_ORDER)[number] | 'General';
 
 export type ExtractedSkills = Record<SkillCategory, string[]>;
+export type SkillConfidence = 'know' | 'practice';
+export type SkillConfidenceMap = Record<string, SkillConfidence>;
 
 export interface ChecklistRound {
   title: string;
@@ -32,7 +34,9 @@ export interface AnalysisEntry {
   plan: DayPlan[];
   checklist: ChecklistRound[];
   questions: string[];
+  baseReadinessScore?: number;
   readinessScore: number;
+  skillConfidenceMap?: SkillConfidenceMap;
 }
 
 export interface AnalyzeInput {
