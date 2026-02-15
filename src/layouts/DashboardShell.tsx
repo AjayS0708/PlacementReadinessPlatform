@@ -5,7 +5,7 @@ import {
   Library,
   UserCircle,
 } from 'lucide-react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet } from 'react-router-dom';
 
 const navItems = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,7 +20,9 @@ export function DashboardShell() {
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <div className="grid min-h-screen md:grid-cols-[260px_1fr]">
         <aside className="border-r border-slate-200 bg-white p-4">
-          <h2 className="mb-6 text-lg font-semibold text-primary">Placement Prep</h2>
+          <Link to="/" className="mb-6 block text-lg font-semibold text-primary hover:underline">
+            Placement Prep
+          </Link>
           <nav className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
