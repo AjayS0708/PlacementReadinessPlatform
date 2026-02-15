@@ -7,6 +7,8 @@ import { PracticePage } from './pages/PracticePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResourcesPage } from './pages/ResourcesPage';
 import { ResultsPage } from './pages/ResultsPage';
+import { ShipGatePage } from './pages/ShipGatePage';
+import { TestChecklistPage } from './pages/TestChecklistPage';
 
 function App() {
   return (
@@ -24,6 +26,14 @@ function App() {
 
       <Route path="/results" element={<DashboardShell />}>
         <Route index element={<ResultsPage />} />
+      </Route>
+
+      <Route path="/prp/07-test" element={<DashboardShell />}>
+        <Route index element={<TestChecklistPage />} />
+      </Route>
+
+      <Route path="/prp/08-ship" element={<DashboardShell />}>
+        <Route index element={<ShipGatePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
