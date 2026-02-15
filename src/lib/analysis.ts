@@ -3,9 +3,12 @@ import {
   AnalyzeInput,
   CATEGORY_ORDER,
   ChecklistRound,
+  CompanyIntel,
   DayPlan,
   ExtractedSkills,
+  RoundMapItem,
   SkillCategory,
+  CompanySizeCategory,
   SkillConfidenceMap,
 } from '../types/analysis';
 
@@ -113,6 +116,191 @@ function hasSkill(extracted: ExtractedSkills, skill: string): boolean {
 
 function flattenDetectedSkills(extracted: ExtractedSkills): string[] {
   return dedupe(CATEGORY_ORDER.flatMap((category) => extracted[category]));
+}
+
+const ENTERPRISE_COMPANIES = new Set([
+  'amazon',
+  'infosys',
+  'tcs',
+  'wipro',
+  'accenture',
+  'microsoft',
+  'google',
+  'meta',
+  'ibm',
+  'oracle',
+  'cognizant',
+  'capgemini',
+  'deloitte',
+  'hcl',
+  'tech mahindra',
+]);
+
+const COMPANY_ALIASES: Record<string, string> = {
+  infosis: 'infosys',
+  infoys: 'infosys',
+  amzon: 'amazon',
+  amazone: 'amazon',
+  googl: 'google',
+  microsoft: 'microsoft',
+};
+
+function inferIndustry(company: string, role: string, jdText: string): string {
+  const source = `${company} ${role} ${jdText}`.toLowerCase();
+
+  if (/bank|finance|fintech|payments|insurance/.test(source)) return 'Fintech / BFSI';
+  if (/health|hospital|medic|pharma/.test(source)) return 'Healthcare Technology';
+  if (/e-?commerce|retail|marketplace/.test(source)) return 'E-commerce';
+  if (/saas|cloud|platform|software/.test(source)) return 'Software / SaaS';
+  if (/consult|services|outsourcing|it services/.test(source)) return 'Technology Services';
+  return 'Technology Services';
+}
+
+function inferSizeCategory(company: string): CompanySizeCategory {
+  const raw = company.trim().toLowerCase();
+  const key = COMPANY_ALIASES[raw] || raw;
+  if (!key) return 'Startup';
+  if (ENTERPRISE_COMPANIES.has(key)) return 'Enterprise';
+  return 'Startup';
+}
+
+function inferHiringFocus(sizeCategory: CompanySizeCategory): string {
+  if (sizeCategory === 'Enterprise') {
+    return 'Structured DSA rounds, strong core CS fundamentals, and consistent communication under process-driven interviews.';
+  }
+
+  if (sizeCategory === 'Mid-size') {
+    return 'Balanced evaluation across coding, practical system understanding, and project execution clarity.';
+  }
+
+  return 'Practical problem solving, hands-on stack depth, ownership mindset, and ability to deliver features quickly.';
+}
+
+export function generateCompanyIntel(input: AnalyzeInput): CompanyIntel | undefined {
+  const companyName = input.company.trim();
+  if (!companyName) return undefined;
+
+  const sizeCategory = inferSizeCategory(companyName);
+  const industry = inferIndustry(companyName, input.role, input.jdText);
+
+  return {
+    companyName,
+    industry,
+    sizeCategory,
+    hiringFocus: inferHiringFocus(sizeCategory),
+    demoNote: 'Demo Mode: Company intel generated heuristically.',
+  };
+}
+
+function hasAnySkill(extracted: ExtractedSkills, skills: string[]): boolean {
+  return skills.some((skill) => CATEGORY_ORDER.some((category) => extracted[category].includes(skill)));
+}
+
+export function generateRoundMapping(extracted: ExtractedSkills, companyIntel?: CompanyIntel): RoundMapItem[] {
+  const sizeCategory = companyIntel?.sizeCategory;
+  const hasDSA = hasAnySkill(extracted, ['DSA']);
+  const hasCore = hasAnySkill(extracted, ['OOP', 'DBMS', 'OS', 'Networks']);
+  const hasFrontend = hasAnySkill(extracted, ['React', 'Next.js']);
+  const hasBackend = hasAnySkill(extracted, ['Node.js', 'Express', 'REST', 'GraphQL']);
+
+  if (sizeCategory === 'Enterprise' && hasDSA) {
+    return [
+      {
+        round: 'Round 1',
+        title: 'Online Test',
+        focus: 'DSA + Aptitude',
+        whyThisMatters: 'Filters for problem-solving speed and baseline accuracy at scale.',
+      },
+      {
+        round: 'Round 2',
+        title: 'Technical Fundamentals',
+        focus: `DSA + Core CS${hasCore ? ' (OS/DBMS/Networks)' : ''}`,
+        whyThisMatters: 'Validates fundamentals required for long-term engineering growth.',
+      },
+      {
+        round: 'Round 3',
+        title: 'Tech + Projects',
+        focus: 'Project depth, architecture decisions, and implementation tradeoffs',
+        whyThisMatters: 'Checks practical execution beyond textbook answers.',
+      },
+      {
+        round: 'Round 4',
+        title: 'HR / Behavioral',
+        focus: 'Communication, ownership, and role alignment',
+        whyThisMatters: 'Ensures candidate fit for team and organization expectations.',
+      },
+    ];
+  }
+
+  if (sizeCategory === 'Startup' && (hasFrontend || hasBackend)) {
+    return [
+      {
+        round: 'Round 1',
+        title: 'Practical Coding',
+        focus: hasFrontend && hasBackend ? 'Feature-level full-stack task' : hasFrontend ? 'Frontend implementation task' : 'Backend API implementation task',
+        whyThisMatters: 'Startups prioritize shipping ability and clean implementation under constraints.',
+      },
+      {
+        round: 'Round 2',
+        title: 'System Discussion',
+        focus: 'Architecture choices, performance tradeoffs, and scaling basics',
+        whyThisMatters: 'Assesses product thinking and decision quality in ambiguous situations.',
+      },
+      {
+        round: 'Round 3',
+        title: 'Culture Fit',
+        focus: 'Ownership, communication, and learning velocity',
+        whyThisMatters: 'Small teams need people who can collaborate and adapt quickly.',
+      },
+    ];
+  }
+
+  return [
+    {
+      round: 'Round 1',
+      title: 'Screening Round',
+      focus: 'Aptitude + coding basics',
+      whyThisMatters: 'Establishes baseline readiness across fundamentals.',
+    },
+    {
+      round: 'Round 2',
+      title: 'Technical Interview',
+      focus: hasDSA ? 'DSA + Core concepts' : 'Core CS + role-specific coding',
+      whyThisMatters: 'Measures technical problem-solving depth.',
+    },
+    {
+      round: 'Round 3',
+      title: 'Project Deep Dive',
+      focus: 'Project walkthrough and decision-making',
+      whyThisMatters: 'Evaluates practical engineering ownership.',
+    },
+    {
+      round: 'Round 4',
+      title: 'HR / Managerial',
+      focus: 'Behavioral fit and motivation',
+      whyThisMatters: 'Confirms team fit, communication style, and role commitment.',
+    },
+  ];
+}
+
+export function enrichAnalysisEntry(entry: AnalysisEntry): AnalysisEntry {
+  const companyIntel =
+    entry.companyIntel ||
+    generateCompanyIntel({
+      company: entry.company,
+      role: entry.role,
+      jdText: entry.jdText,
+    });
+
+  const roundMapping = entry.roundMapping && entry.roundMapping.length > 0
+    ? entry.roundMapping
+    : generateRoundMapping(entry.extractedSkills, companyIntel);
+
+  return {
+    ...entry,
+    companyIntel,
+    roundMapping,
+  };
 }
 
 function buildDefaultSkillConfidenceMap(extracted: ExtractedSkills): SkillConfidenceMap {
@@ -468,6 +656,8 @@ export function analyzeJobDescription(input: AnalyzeInput): AnalysisEntry {
   const questions = buildLikelyQuestions(extractedSkills);
   const readinessScore = calculateReadinessScore(input, extractedSkills);
   const skillConfidenceMap = buildDefaultSkillConfidenceMap(extractedSkills);
+  const companyIntel = generateCompanyIntel(input);
+  const roundMapping = generateRoundMapping(extractedSkills, companyIntel);
 
   return {
     id: createId(),
@@ -482,5 +672,7 @@ export function analyzeJobDescription(input: AnalyzeInput): AnalysisEntry {
     baseReadinessScore: readinessScore,
     readinessScore,
     skillConfidenceMap,
+    companyIntel,
+    roundMapping,
   };
 }

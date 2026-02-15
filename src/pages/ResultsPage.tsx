@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { enrichAnalysisEntry } from '../lib/analysis';
 import {
   getAnalysisById,
   getSelectedOrLatestAnalysis,
@@ -31,12 +32,13 @@ function calculateLiveScore(baseScore: number, confidenceMap: SkillConfidenceMap
 }
 
 function normalizeEntry(entry: AnalysisEntry): AnalysisEntry {
-  const confidenceMap = buildInitialConfidenceMap(entry);
-  const baseReadinessScore = entry.baseReadinessScore ?? entry.readinessScore;
+  const enriched = enrichAnalysisEntry(entry);
+  const confidenceMap = buildInitialConfidenceMap(enriched);
+  const baseReadinessScore = enriched.baseReadinessScore ?? enriched.readinessScore;
   const readinessScore = calculateLiveScore(baseReadinessScore, confidenceMap);
 
   return {
-    ...entry,
+    ...enriched,
     baseReadinessScore,
     skillConfidenceMap: confidenceMap,
     readinessScore,
@@ -72,6 +74,27 @@ function buildExportText(entry: AnalysisEntry, liveScore: number, confidenceMap:
   }).join('\n');
 
   const generalNote = entry.extractedSkills.General.length > 0 ? `\n\nGeneral: ${entry.extractedSkills.General[0]}` : '';
+  const intelSection = entry.companyIntel
+    ? [
+        '',
+        'Company Intel',
+        `Company: ${entry.companyIntel.companyName}`,
+        `Industry: ${entry.companyIntel.industry}`,
+        `Estimated Size: ${entry.companyIntel.sizeCategory}`,
+        `Typical Hiring Focus: ${entry.companyIntel.hiringFocus}`,
+        entry.companyIntel.demoNote,
+      ].join('\n')
+    : '';
+  const roundSection = entry.roundMapping && entry.roundMapping.length > 0
+    ? [
+        '',
+        'Round Mapping',
+        ...entry.roundMapping.map(
+          (item) =>
+            `${item.round} - ${item.title}\nFocus: ${item.focus}\nWhy this round matters: ${item.whyThisMatters}`,
+        ),
+      ].join('\n\n')
+    : '';
 
   return [
     'Placement Readiness Platform - Analysis Export',
@@ -82,6 +105,8 @@ function buildExportText(entry: AnalysisEntry, liveScore: number, confidenceMap:
     '',
     'Key Skills Extracted',
     skillsSection + generalNote,
+    intelSection,
+    roundSection,
     '',
     'Round-wise Preparation Checklist',
     buildChecklistText(entry),
@@ -235,6 +260,68 @@ export function ResultsPage() {
           {copyMessage && <span className="self-center text-xs text-emerald-700">{copyMessage}</span>}
         </CardContent>
       </Card>
+
+      {entry.companyIntel && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Company Intel</CardTitle>
+            <CardDescription>Context generated from company and JD inputs.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Company</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{entry.companyIntel.companyName}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Industry</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{entry.companyIntel.industry}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estimated Size</p>
+                <p className="mt-1 text-sm font-semibold text-slate-800">{entry.companyIntel.sizeCategory}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">Typical Hiring Focus</p>
+              <p className="mt-1 text-sm text-indigo-900">{entry.companyIntel.hiringFocus}</p>
+            </div>
+            <p className="text-xs text-slate-500">{entry.companyIntel.demoNote}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {entry.roundMapping && entry.roundMapping.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Round Mapping</CardTitle>
+            <CardDescription>Dynamic interview flow inferred from company type and detected skills.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {entry.roundMapping.map((item, index) => (
+                <div key={`${item.round}-${item.title}`} className="relative pl-8">
+                  {index !== entry.roundMapping!.length - 1 && (
+                    <span className="absolute left-[11px] top-7 h-[calc(100%-8px)] w-[2px] bg-slate-200" />
+                  )}
+                  <span className="absolute left-0 top-1 h-6 w-6 rounded-full border-2 border-primary bg-white text-center text-xs font-bold leading-[20px] text-primary">
+                    {index + 1}
+                  </span>
+                  <div className="rounded-lg border border-slate-200 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{item.round}</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-900">{item.title}</p>
+                    <p className="mt-1 text-sm text-slate-700">Focus: {item.focus}</p>
+                    <p className="mt-2 rounded-md bg-slate-50 p-2 text-xs text-slate-600">
+                      Why this round matters: {item.whyThisMatters}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

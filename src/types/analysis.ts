@@ -12,6 +12,22 @@ export type SkillCategory = (typeof CATEGORY_ORDER)[number] | 'General';
 export type ExtractedSkills = Record<SkillCategory, string[]>;
 export type SkillConfidence = 'know' | 'practice';
 export type SkillConfidenceMap = Record<string, SkillConfidence>;
+export type CompanySizeCategory = 'Startup' | 'Mid-size' | 'Enterprise';
+
+export interface CompanyIntel {
+  companyName: string;
+  industry: string;
+  sizeCategory: CompanySizeCategory;
+  hiringFocus: string;
+  demoNote: string;
+}
+
+export interface RoundMapItem {
+  round: string;
+  title: string;
+  focus: string;
+  whyThisMatters: string;
+}
 
 export interface ChecklistRound {
   title: string;
@@ -37,6 +53,8 @@ export interface AnalysisEntry {
   baseReadinessScore?: number;
   readinessScore: number;
   skillConfidenceMap?: SkillConfidenceMap;
+  companyIntel?: CompanyIntel;
+  roundMapping?: RoundMapItem[];
 }
 
 export interface AnalyzeInput {
