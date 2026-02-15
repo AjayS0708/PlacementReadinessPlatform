@@ -100,11 +100,18 @@ export function DashboardPage() {
           <CardDescription>Radar view of current strengths and weak spots.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={skillData} outerRadius="75%">
+          <div className="w-full overflow-x-auto">
+            <div className="mx-auto h-64 min-w-[320px] sm:h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart
+                  data={skillData}
+                  cx="50%"
+                  cy="52%"
+                  outerRadius="62%"
+                  margin={{ top: 20, right: 30, bottom: 20, left: 30 }}
+                >
                 <PolarGrid stroke="#cbd5e1" />
-                <PolarAngleAxis dataKey="skill" tick={{ fill: '#334155', fontSize: 12 }} />
+                <PolarAngleAxis dataKey="skill" tick={{ fill: '#334155', fontSize: 11 }} />
                 <Radar
                   dataKey="score"
                   stroke="hsl(245 58% 51%)"
@@ -112,8 +119,9 @@ export function DashboardPage() {
                   fillOpacity={0.35}
                   strokeWidth={2}
                 />
-              </RadarChart>
-            </ResponsiveContainer>
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </CardContent>
       </Card>
