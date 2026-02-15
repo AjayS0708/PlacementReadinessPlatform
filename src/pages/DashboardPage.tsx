@@ -34,7 +34,7 @@ const weeklyActivity = [
 
 const assessments = [
   { title: 'DSA Mock Test', time: 'Tomorrow, 10:00 AM' },
-  { title: 'System Design Review', time: 'Wed, 2:00 PM' },
+  { title: 'System Design Review', time: 'Wednesday, 2:00 PM' },
   { title: 'HR Interview Prep', time: 'Friday, 11:00 AM' },
 ];
 
