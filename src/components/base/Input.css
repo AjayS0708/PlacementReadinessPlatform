@@ -1,0 +1,37 @@
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.input-label {
+  font-size: var(--text-small);
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.input {
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background-color: var(--color-card-bg);
+  font-size: var(--text-body);
+  transition: border-color var(--transition-normal);
+}
+
+.input:hover {
+  border-color: var(--color-text-primary);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+}
+
+.input--error {
+  border-color: var(--color-accent);
+}
+
+.input-error {
+  font-size: var(--text-small);
+  color: var(--color-accent);
+}

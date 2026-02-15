@@ -1,0 +1,38 @@
+.top-bar {
+  height: var(--top-bar-height);
+  background-color: var(--color-card-bg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.top-bar__left,
+.top-bar__center,
+.top-bar__right {
+  flex: 1;
+}
+
+.top-bar__center {
+  display: flex;
+  justify-content: center;
+}
+
+.top-bar__right {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.top-bar__project-name {
+  font-weight: 600;
+  font-size: var(--text-body);
+}
+
+.top-bar__progress {
+  font-size: var(--text-small);
+  color: var(--color-text-primary);
+}

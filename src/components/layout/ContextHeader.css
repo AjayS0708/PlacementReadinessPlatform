@@ -1,0 +1,19 @@
+.context-header {
+  padding: var(--space-xl) var(--space-md) var(--space-lg);
+  background-color: var(--color-background);
+}
+
+.context-header__headline {
+  font-size: var(--text-h1);
+  font-family: var(--font-serif);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+  letter-spacing: -0.02em;
+}
+
+.context-header__subtext {
+  font-size: var(--text-body-lg);
+  color: var(--color-text-primary);
+  opacity: 0.7;
+  line-height: var(--line-height-body);
+}

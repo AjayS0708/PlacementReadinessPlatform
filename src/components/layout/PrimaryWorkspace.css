@@ -1,0 +1,5 @@
+.primary-workspace {
+  flex: 1;
+  padding: var(--space-md);
+  overflow-y: auto;
+}
