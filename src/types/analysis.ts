@@ -7,12 +7,20 @@ export const CATEGORY_ORDER = [
   'Testing',
 ] as const;
 
-export type SkillCategory = (typeof CATEGORY_ORDER)[number] | 'General';
-
-export type ExtractedSkills = Record<SkillCategory, string[]>;
+export type SkillCategory = (typeof CATEGORY_ORDER)[number];
 export type SkillConfidence = 'know' | 'practice';
 export type SkillConfidenceMap = Record<string, SkillConfidence>;
 export type CompanySizeCategory = 'Startup' | 'Mid-size' | 'Enterprise';
+
+export interface ExtractedSkills {
+  coreCS: string[];
+  languages: string[];
+  web: string[];
+  data: string[];
+  cloud: string[];
+  testing: string[];
+  other: string[];
+}
 
 export interface CompanyIntel {
   companyName: string;
@@ -23,21 +31,20 @@ export interface CompanyIntel {
 }
 
 export interface RoundMapItem {
-  round: string;
-  title: string;
-  focus: string;
-  whyThisMatters: string;
+  roundTitle: string;
+  focusAreas: string[];
+  whyItMatters: string;
 }
 
 export interface ChecklistRound {
-  title: string;
+  roundTitle: string;
   items: string[];
 }
 
 export interface DayPlan {
   day: string;
   focus: string;
-  items: string[];
+  tasks: string[];
 }
 
 export interface AnalysisEntry {
@@ -47,14 +54,15 @@ export interface AnalysisEntry {
   role: string;
   jdText: string;
   extractedSkills: ExtractedSkills;
-  plan: DayPlan[];
+  roundMapping: RoundMapItem[];
   checklist: ChecklistRound[];
+  plan7Days: DayPlan[];
   questions: string[];
-  baseReadinessScore?: number;
-  readinessScore: number;
-  skillConfidenceMap?: SkillConfidenceMap;
+  baseScore: number;
+  skillConfidenceMap: SkillConfidenceMap;
+  finalScore: number;
+  updatedAt: string;
   companyIntel?: CompanyIntel;
-  roundMapping?: RoundMapItem[];
 }
 
 export interface AnalyzeInput {
@@ -62,3 +70,14 @@ export interface AnalyzeInput {
   role: string;
   jdText: string;
 }
+
+export const SKILL_SECTION_CONFIG = [
+  { key: 'coreCS', label: 'Core CS' },
+  { key: 'languages', label: 'Languages' },
+  { key: 'web', label: 'Web' },
+  { key: 'data', label: 'Data' },
+  { key: 'cloud', label: 'Cloud/DevOps' },
+  { key: 'testing', label: 'Testing' },
+] as const;
+
+export type SkillSectionKey = (typeof SKILL_SECTION_CONFIG)[number]['key'];

@@ -1,65 +1,51 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { enrichAnalysisEntry } from '../lib/analysis';
+import { calculateFinalScore, enrichAnalysisEntry } from '../lib/analysis';
 import {
   getAnalysisById,
   getSelectedOrLatestAnalysis,
   setSelectedAnalysisId,
   updateAnalysisEntry,
 } from '../lib/storage';
-import { AnalysisEntry, CATEGORY_ORDER, SkillConfidence, SkillConfidenceMap } from '../types/analysis';
+import { AnalysisEntry, SKILL_SECTION_CONFIG, SkillConfidence, SkillConfidenceMap } from '../types/analysis';
 
 function flattenDetectedSkills(entry: AnalysisEntry): string[] {
-  return CATEGORY_ORDER.flatMap((category) => entry.extractedSkills[category]);
+  return SKILL_SECTION_CONFIG.flatMap((section) => entry.extractedSkills[section.key]);
 }
 
 function buildInitialConfidenceMap(entry: AnalysisEntry): SkillConfidenceMap {
   const map: SkillConfidenceMap = {};
-  flattenDetectedSkills(entry).forEach((skill) => {
+  [...flattenDetectedSkills(entry), ...entry.extractedSkills.other].forEach((skill) => {
     map[skill] = entry.skillConfidenceMap?.[skill] ?? 'practice';
   });
   return map;
 }
 
-function clampScore(score: number): number {
-  return Math.max(0, Math.min(100, score));
-}
-
-function calculateLiveScore(baseScore: number, confidenceMap: SkillConfidenceMap): number {
-  const adjustment = Object.values(confidenceMap).reduce((sum, value) => sum + (value === 'know' ? 2 : -2), 0);
-  return clampScore(baseScore + adjustment);
-}
-
 function normalizeEntry(entry: AnalysisEntry): AnalysisEntry {
   const enriched = enrichAnalysisEntry(entry);
   const confidenceMap = buildInitialConfidenceMap(enriched);
-  const baseReadinessScore = enriched.baseReadinessScore ?? enriched.readinessScore;
-  const readinessScore = calculateLiveScore(baseReadinessScore, confidenceMap);
+  const baseScore = enriched.baseScore;
+  const finalScore = calculateFinalScore(baseScore, confidenceMap);
 
   return {
     ...enriched,
-    baseReadinessScore,
+    baseScore,
     skillConfidenceMap: confidenceMap,
-    readinessScore,
+    finalScore,
+    updatedAt: enriched.updatedAt || new Date().toISOString(),
   };
 }
 
 function buildChecklistText(entry: AnalysisEntry): string {
   return entry.checklist
-    .map((round) => {
-      const lines = round.items.map((item) => `- ${item}`).join('\n');
-      return `${round.title}\n${lines}`;
-    })
+    .map((round) => `${round.roundTitle}\n${round.items.map((item) => `- ${item}`).join('\n')}`)
     .join('\n\n');
 }
 
 function buildPlanText(entry: AnalysisEntry): string {
-  return entry.plan
-    .map((day) => {
-      const lines = day.items.map((item) => `- ${item}`).join('\n');
-      return `${day.day}: ${day.focus}\n${lines}`;
-    })
+  return entry.plan7Days
+    .map((day) => `${day.day}: ${day.focus}\n${day.tasks.map((task) => `- ${task}`).join('\n')}`)
     .join('\n\n');
 }
 
@@ -67,13 +53,16 @@ function buildQuestionsText(entry: AnalysisEntry): string {
   return entry.questions.map((question, index) => `${index + 1}. ${question}`).join('\n');
 }
 
-function buildExportText(entry: AnalysisEntry, liveScore: number, confidenceMap: SkillConfidenceMap): string {
-  const skillsSection = CATEGORY_ORDER.map((category) => {
-    const values = entry.extractedSkills[category].map((skill) => `${skill} [${confidenceMap[skill] || 'practice'}]`).join(', ');
-    return `${category}: ${values || 'No explicit matches'}`;
+function buildExportText(entry: AnalysisEntry, finalScore: number, confidenceMap: SkillConfidenceMap): string {
+  const skillsSection = SKILL_SECTION_CONFIG.map((section) => {
+    const values = entry.extractedSkills[section.key].map((skill) => `${skill} [${confidenceMap[skill] || 'practice'}]`).join(', ');
+    return `${section.label}: ${values || 'No explicit matches'}`;
   }).join('\n');
 
-  const generalNote = entry.extractedSkills.General.length > 0 ? `\n\nGeneral: ${entry.extractedSkills.General[0]}` : '';
+  const otherSection = entry.extractedSkills.other.length > 0
+    ? `\nOther: ${entry.extractedSkills.other.join(', ')}`
+    : '';
+
   const intelSection = entry.companyIntel
     ? [
         '',
@@ -85,26 +74,26 @@ function buildExportText(entry: AnalysisEntry, liveScore: number, confidenceMap:
         entry.companyIntel.demoNote,
       ].join('\n')
     : '';
-  const roundSection = entry.roundMapping && entry.roundMapping.length > 0
-    ? [
-        '',
-        'Round Mapping',
-        ...entry.roundMapping.map(
-          (item) =>
-            `${item.round} - ${item.title}\nFocus: ${item.focus}\nWhy this round matters: ${item.whyThisMatters}`,
-        ),
-      ].join('\n\n')
-    : '';
+
+  const roundSection = [
+    '',
+    'Round Mapping',
+    ...entry.roundMapping.map(
+      (round) => `${round.roundTitle}\nFocus: ${round.focusAreas.join(', ')}\nWhy this round matters: ${round.whyItMatters}`,
+    ),
+  ].join('\n\n');
 
   return [
     'Placement Readiness Platform - Analysis Export',
     `Date: ${new Date(entry.createdAt).toLocaleString()}`,
+    `Updated: ${new Date(entry.updatedAt).toLocaleString()}`,
     `Company: ${entry.company || 'Not specified'}`,
     `Role: ${entry.role || 'Not specified'}`,
-    `Readiness Score: ${liveScore}/100`,
+    `Base Score: ${entry.baseScore}/100`,
+    `Final Score: ${finalScore}/100`,
     '',
     'Key Skills Extracted',
-    skillsSection + generalNote,
+    skillsSection + otherSection,
     intelSection,
     roundSection,
     '',
@@ -140,9 +129,7 @@ export function ResultsPage() {
 
     if (id) {
       selected = getAnalysisById(id);
-      if (selected) {
-        setSelectedAnalysisId(id);
-      }
+      if (selected) setSelectedAnalysisId(id);
     }
 
     const resolved = selected || getSelectedOrLatestAnalysis();
@@ -153,34 +140,30 @@ export function ResultsPage() {
 
     const normalized = normalizeEntry(resolved);
     setEntry(normalized);
-    setConfidenceMap(normalized.skillConfidenceMap || {});
+    setConfidenceMap(normalized.skillConfidenceMap);
     updateAnalysisEntry(normalized);
   }, [searchParams]);
 
-  const baseScore = entry ? entry.baseReadinessScore ?? entry.readinessScore : 0;
-
-  const liveScore = useMemo(() => {
+  const finalScore = useMemo(() => {
     if (!entry) return 0;
-    return calculateLiveScore(baseScore, confidenceMap);
-  }, [entry, baseScore, confidenceMap]);
+    return calculateFinalScore(entry.baseScore, confidenceMap);
+  }, [entry, confidenceMap]);
 
-  const weakSkills = useMemo(() => {
-    return Object.entries(confidenceMap)
-      .filter(([, value]) => value === 'practice')
-      .map(([skill]) => skill)
-      .slice(0, 3);
-  }, [confidenceMap]);
+  const weakSkills = useMemo(
+    () => Object.entries(confidenceMap).filter(([, status]) => status === 'practice').map(([skill]) => skill).slice(0, 3),
+    [confidenceMap],
+  );
 
   const setSkillConfidence = (skill: string, nextValue: SkillConfidence) => {
     if (!entry) return;
 
-    const nextMap: SkillConfidenceMap = { ...confidenceMap, [skill]: nextValue };
-    const nextScore = calculateLiveScore(baseScore, nextMap);
+    const nextMap = { ...confidenceMap, [skill]: nextValue };
+    const nextFinal = calculateFinalScore(entry.baseScore, nextMap);
     const nextEntry: AnalysisEntry = {
       ...entry,
-      baseReadinessScore: baseScore,
-      readinessScore: nextScore,
       skillConfidenceMap: nextMap,
+      finalScore: nextFinal,
+      updatedAt: new Date().toISOString(),
     };
 
     setConfidenceMap(nextMap);
@@ -191,13 +174,7 @@ export function ResultsPage() {
   const handleCopy = async (section: 'plan' | 'checklist' | 'questions') => {
     if (!entry) return;
 
-    const text =
-      section === 'plan'
-        ? buildPlanText(entry)
-        : section === 'checklist'
-          ? buildChecklistText(entry)
-          : buildQuestionsText(entry);
-
+    const text = section === 'plan' ? buildPlanText(entry) : section === 'checklist' ? buildChecklistText(entry) : buildQuestionsText(entry);
     const ok = await copyTextToClipboard(text);
     setCopyMessage(ok ? 'Copied to clipboard.' : 'Copy failed. Please copy manually.');
     window.setTimeout(() => setCopyMessage(''), 1800);
@@ -206,7 +183,7 @@ export function ResultsPage() {
   const handleDownloadTxt = () => {
     if (!entry) return;
 
-    const content = buildExportText(entry, liveScore, confidenceMap);
+    const content = buildExportText(entry, finalScore, confidenceMap);
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -241,22 +218,14 @@ export function ResultsPage() {
         <CardHeader>
           <CardTitle>Analysis Results</CardTitle>
           <CardDescription>
-            {entry.company || 'Company not specified'} | {entry.role || 'Role not specified'} | Live Score: {liveScore}/100
+            {entry.company || 'Company not specified'} | {entry.role || 'Role not specified'} | Base: {entry.baseScore}/100 | Final: {finalScore}/100
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => handleCopy('plan')} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-            Copy 7-day plan
-          </button>
-          <button type="button" onClick={() => handleCopy('checklist')} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-            Copy round checklist
-          </button>
-          <button type="button" onClick={() => handleCopy('questions')} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">
-            Copy 10 questions
-          </button>
-          <button type="button" onClick={handleDownloadTxt} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-600">
-            Download as TXT
-          </button>
+          <button type="button" onClick={() => handleCopy('plan')} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Copy 7-day plan</button>
+          <button type="button" onClick={() => handleCopy('checklist')} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Copy round checklist</button>
+          <button type="button" onClick={() => handleCopy('questions')} className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Copy 10 questions</button>
+          <button type="button" onClick={handleDownloadTxt} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white hover:bg-primary-600">Download as TXT</button>
           {copyMessage && <span className="self-center text-xs text-emerald-700">{copyMessage}</span>}
         </CardContent>
       </Card>
@@ -292,36 +261,29 @@ export function ResultsPage() {
         </Card>
       )}
 
-      {entry.roundMapping && entry.roundMapping.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Round Mapping</CardTitle>
-            <CardDescription>Dynamic interview flow inferred from company type and detected skills.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {entry.roundMapping.map((item, index) => (
-                <div key={`${item.round}-${item.title}`} className="relative pl-8">
-                  {index !== entry.roundMapping!.length - 1 && (
-                    <span className="absolute left-[11px] top-7 h-[calc(100%-8px)] w-[2px] bg-slate-200" />
-                  )}
-                  <span className="absolute left-0 top-1 h-6 w-6 rounded-full border-2 border-primary bg-white text-center text-xs font-bold leading-[20px] text-primary">
-                    {index + 1}
-                  </span>
-                  <div className="rounded-lg border border-slate-200 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{item.round}</p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">{item.title}</p>
-                    <p className="mt-1 text-sm text-slate-700">Focus: {item.focus}</p>
-                    <p className="mt-2 rounded-md bg-slate-50 p-2 text-xs text-slate-600">
-                      Why this round matters: {item.whyThisMatters}
-                    </p>
-                  </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Round Mapping</CardTitle>
+          <CardDescription>Dynamic interview flow inferred from company type and detected skills.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {entry.roundMapping.map((item, index) => (
+              <div key={item.roundTitle} className="relative pl-8">
+                {index !== entry.roundMapping.length - 1 && (
+                  <span className="absolute left-[11px] top-7 h-[calc(100%-8px)] w-[2px] bg-slate-200" />
+                )}
+                <span className="absolute left-0 top-1 h-6 w-6 rounded-full border-2 border-primary bg-white text-center text-xs font-bold leading-[20px] text-primary">{index + 1}</span>
+                <div className="rounded-lg border border-slate-200 p-4">
+                  <p className="text-sm font-semibold text-slate-900">{item.roundTitle}</p>
+                  <p className="mt-1 text-sm text-slate-700">Focus: {item.focusAreas.join(', ')}</p>
+                  <p className="mt-2 rounded-md bg-slate-50 p-2 text-xs text-slate-600">Why this round matters: {item.whyItMatters}</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -329,33 +291,21 @@ export function ResultsPage() {
           <CardDescription>Detected from JD text by category. Mark each skill as know or need practice.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {CATEGORY_ORDER.map((category) => (
-            <div key={category}>
-              <p className="mb-2 text-sm font-semibold text-slate-700">{category}</p>
+          {SKILL_SECTION_CONFIG.map((section) => (
+            <div key={section.key}>
+              <p className="mb-2 text-sm font-semibold text-slate-700">{section.label}</p>
               <div className="flex flex-wrap gap-3">
-                {entry.extractedSkills[category].length > 0 ? (
-                  entry.extractedSkills[category].map((skill) => {
+                {entry.extractedSkills[section.key].length > 0 ? (
+                  entry.extractedSkills[section.key].map((skill) => {
                     const value = confidenceMap[skill] || 'practice';
                     return (
-                      <div key={`${category}-${skill}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <div key={`${section.key}-${skill}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                         <p className="text-xs font-semibold text-primary">{skill}</p>
                         <div className="mt-2 flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSkillConfidence(skill, 'know')}
-                            className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
-                              value === 'know' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'
-                            }`}
-                          >
+                          <button type="button" onClick={() => setSkillConfidence(skill, 'know')} className={`rounded-md px-2 py-1 text-[11px] font-semibold ${value === 'know' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}>
                             I know this
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setSkillConfidence(skill, 'practice')}
-                            className={`rounded-md px-2 py-1 text-[11px] font-semibold ${
-                              value === 'practice' ? 'bg-amber-500 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'
-                            }`}
-                          >
+                          <button type="button" onClick={() => setSkillConfidence(skill, 'practice')} className={`rounded-md px-2 py-1 text-[11px] font-semibold ${value === 'practice' ? 'bg-amber-500 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}>
                             Need practice
                           </button>
                         </div>
@@ -369,9 +319,27 @@ export function ResultsPage() {
             </div>
           ))}
 
-          {entry.extractedSkills.General.length > 0 && (
-            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm font-medium text-indigo-700">
-              {entry.extractedSkills.General[0]}
+          {entry.extractedSkills.other.length > 0 && (
+            <div>
+              <p className="mb-2 text-sm font-semibold text-slate-700">Other</p>
+              <div className="flex flex-wrap gap-3">
+                {entry.extractedSkills.other.map((skill) => {
+                  const value = confidenceMap[skill] || 'practice';
+                  return (
+                    <div key={`other-${skill}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-semibold text-primary">{skill}</p>
+                      <div className="mt-2 flex gap-2">
+                        <button type="button" onClick={() => setSkillConfidence(skill, 'know')} className={`rounded-md px-2 py-1 text-[11px] font-semibold ${value === 'know' ? 'bg-emerald-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}>
+                          I know this
+                        </button>
+                        <button type="button" onClick={() => setSkillConfidence(skill, 'practice')} className={`rounded-md px-2 py-1 text-[11px] font-semibold ${value === 'practice' ? 'bg-amber-500 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-300'}`}>
+                          Need practice
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </CardContent>
@@ -384,8 +352,8 @@ export function ResultsPage() {
         </CardHeader>
         <CardContent className="grid gap-4 xl:grid-cols-2">
           {entry.checklist.map((round) => (
-            <div key={round.title} className="rounded-lg border border-slate-200 p-4">
-              <h3 className="text-sm font-semibold text-slate-800">{round.title}</h3>
+            <div key={round.roundTitle} className="rounded-lg border border-slate-200 p-4">
+              <h3 className="text-sm font-semibold text-slate-800">{round.roundTitle}</h3>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
                 {round.items.map((item) => (
                   <li key={item}>{item}</li>
@@ -402,12 +370,12 @@ export function ResultsPage() {
           <CardDescription>Action plan adapted based on extracted skills.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {entry.plan.map((day) => (
+          {entry.plan7Days.map((day) => (
             <div key={day.day} className="rounded-lg border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-800">{day.day}: {day.focus}</p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
-                {day.items.map((item) => (
-                  <li key={`${day.day}-${item}`}>{item}</li>
+                {day.tasks.map((task) => (
+                  <li key={`${day.day}-${task}`}>{task}</li>
                 ))}
               </ul>
             </div>
@@ -440,14 +408,10 @@ export function ResultsPage() {
               <p className="text-sm font-semibold text-slate-800">Top 3 weak skills</p>
               <div className="flex flex-wrap gap-2">
                 {weakSkills.map((skill) => (
-                  <span key={skill} className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
-                    {skill}
-                  </span>
+                  <span key={skill} className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">{skill}</span>
                 ))}
               </div>
-              <p className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm font-medium text-indigo-800">
-                Start Day 1 plan now.
-              </p>
+              <p className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-sm font-medium text-indigo-800">Start Day 1 plan now.</p>
             </div>
           ) : (
             <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-700">

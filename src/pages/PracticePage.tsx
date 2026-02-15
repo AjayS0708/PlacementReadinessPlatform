@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { analyzeJobDescription } from '../lib/analysis';
 import { saveAnalysisEntry } from '../lib/storage';
@@ -10,6 +10,7 @@ export function PracticePage() {
   const [role, setRole] = useState('');
   const [jdText, setJdText] = useState('');
   const [error, setError] = useState('');
+  const isShortJd = useMemo(() => jdText.trim().length > 0 && jdText.trim().length < 200, [jdText]);
 
   const handleAnalyze = (event: FormEvent) => {
     event.preventDefault();
@@ -64,6 +65,12 @@ export function PracticePage() {
               placeholder="Paste full JD here..."
             />
           </label>
+
+          {isShortJd && (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+              This JD is too short to analyze deeply. Paste full JD for better output.
+            </p>
+          )}
 
           {error && <p className="text-sm text-rose-600">{error}</p>}
 

@@ -41,7 +41,7 @@ const assessments = [
 
 export function DashboardPage() {
   const activeAnalysis = getSelectedOrLatestAnalysis();
-  const readinessScore = activeAnalysis?.readinessScore ?? 72;
+  const readinessScore = activeAnalysis?.finalScore ?? 72;
   const readinessMax = 100;
   const radius = 84;
   const circumference = 2 * Math.PI * radius;
