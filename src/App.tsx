@@ -6,6 +6,7 @@ import { LandingPage } from './pages/LandingPage';
 import { PracticePage } from './pages/PracticePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ResourcesPage } from './pages/ResourcesPage';
+import { ResultsPage } from './pages/ResultsPage';
 
 function App() {
   return (
@@ -19,6 +20,10 @@ function App() {
         <Route path="assessments" element={<AssessmentsPage />} />
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="profile" element={<ProfilePage />} />
+      </Route>
+
+      <Route path="/results" element={<DashboardShell />}>
+        <Route index element={<ResultsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
